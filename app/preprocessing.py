@@ -3,107 +3,143 @@ import SimpleITK as sitk
 import pydicom
 import os
 import zipfile
+import shutil
 from skimage.transform import resize
 from skimage.exposure import equalize_adapthist
 
+
 def load_dicom_series(directory):
-    """Carga una serie DICOM desde un directorio"""
+    """Carga una serie DICOM desde un directorio y devuelve el volumen y el espaciado."""
     reader = sitk.ImageSeriesReader()
     dicom_files = reader.GetGDCMSeriesFileNames(directory)
+    
+    if not dicom_files:
+        raise FileNotFoundError(f"No se encontraron archivos DICOM en {directory}")
+
     reader.SetFileNames(dicom_files)
     image = reader.Execute()
+    volume = sitk.GetArrayFromImage(image)  # (Z, Y, X)
     
-    # Convertir a array numpy
-    volume = sitk.GetArrayFromImage(image)
-    
-    # Reordenar ejes (SimpleITK usa z,y,x)
+    # Reordenar a (X, Y, Z)
     volume = np.transpose(volume, (2, 1, 0))
-    
-    return volume, image.GetSpacing()
+    spacing = image.GetSpacing()[::-1]  # (X, Y, Z)
+
+    return volume, spacing
+
 
 def load_and_preprocess_ct_scan(input_path, target_size=(128, 128, 128)):
     """
-    Carga y preprocesa un volumen de TC
+    Carga y preprocesa un volumen CT.
+    Soporta directorios DICOM, archivos DICOM individuales y archivos ZIP.
+    
     Args:
-        input_path: Ruta al archivo DICOM, directorio o zip
-        target_size: Tamaño objetivo para el volumen
+        input_path (str): Ruta a los datos.
+        target_size (tuple): Tamaño objetivo del volumen.
+    
     Returns:
-        volume_preprocessed: Volumen preprocesado
-        original_volume: Volumen original (redimensionado)
+        volume_preprocessed (np.ndarray): Volumen normalizado y preprocesado.
+        original_volume (np.ndarray): Volumen reescalado sin preprocesar.
     """
-    # Cargar datos según el tipo de entrada
-    if isinstance(input_path, str) and input_path.endswith('.zip'):
-        # Extraer archivo zip
-        with zipfile.ZipFile(input_path, 'r') as zip_ref:
+    temp_dir = None
+    try:
+        if isinstance(input_path, str) and input_path.endswith('.zip'):
             temp_dir = 'temp_dicom'
-            zip_ref.extractall(temp_dir)
+            with zipfile.ZipFile(input_path, 'r') as zip_ref:
+                zip_ref.extractall(temp_dir)
             input_path = temp_dir
-    
-    if os.path.isdir(input_path):
-        # Cargar serie DICOM
-        volume, spacing = load_dicom_series(input_path)
-    else:
-        # Cargar archivo DICOM individual (no recomendado)
-        ds = pydicom.dcmread(input_path)
-        volume = ds.pixel_array
-        spacing = (1.0, 1.0, 1.0)  # Asumir si no hay información
-    
-    # Guardar volumen original (para visualización)
-    original_volume = resize(volume, target_size, mode='reflect', anti_aliasing=True)
-    
-    # Preprocesamiento
-    volume_preprocessed = preprocess_volume(volume, spacing, target_size)
-    
-    return volume_preprocessed, original_volume
+
+        if os.path.isdir(input_path):
+            volume, spacing = load_dicom_series(input_path)
+        elif input_path.lower().endswith('.dcm'):
+            ds = pydicom.dcmread(input_path)
+            volume = ds.pixel_array
+            spacing = (1.0, 1.0, 1.0)  # Se asume espaciado
+        else:
+            raise ValueError("Ruta de entrada no soportada: debe ser directorio, .dcm o .zip")
+
+        # Guardar copia reescalada del volumen original
+        original_volume = resize(volume, target_size, mode='reflect', anti_aliasing=True)
+
+        # Preprocesamiento completo
+        volume_preprocessed = preprocess_volume(volume, spacing, target_size)
+
+        return volume_preprocessed, original_volume
+
+    finally:
+        if temp_dir and os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+
 
 def preprocess_volume(volume, spacing, target_size):
-    """Aplica preprocesamiento a un volumen CT"""
-    # 1. Normalizar intensidades (ventana pulmonar)
+    """
+    Aplica preprocesamiento estándar a un volumen CT:
+    1. Ventana pulmonar
+    2. Resample a voxel isotrópico
+    3. Resize a tamaño uniforme
+    4. Ecualización de contraste
+    5. Normalización [0, 1]
+    """
     volume = apply_lung_window(volume)
-    
-    # 2. Resample para tamaño de voxel isotrópico
+
     volume = resample_volume(volume, spacing)
-    
-    # 3. Redimensionar al tamaño objetivo
+
     volume = resize(volume, target_size, mode='reflect', anti_aliasing=True)
-    
-    # 4. Ecualización adaptativa de histograma (slice por slice)
+
+    # Aplicar CLAHE slice por slice
     for i in range(volume.shape[0]):
         volume[i] = equalize_adapthist(volume[i])
-    
-    # 5. Normalización [0,1]
-    volume = (volume - volume.min()) / (volume.max() - volume.min())
-    
+
+    # Normalizar intensidades a [0, 1]
+    min_val, max_val = volume.min(), volume.max()
+    if max_val - min_val != 0:
+        volume = (volume - min_val) / (max_val - min_val)
+    else:
+        volume = np.zeros_like(volume)
+
     return volume
+
 
 def apply_lung_window(volume, level=-600, width=1500):
-    """Aplica ventana pulmonar a un volumen CT"""
+    """
+    Aplica la ventana pulmonar al volumen para mejorar el contraste en estructuras de interés.
+
+    Args:
+        level (int): Nivel central de la ventana.
+        width (int): Ancho de la ventana.
+
+    Returns:
+        volume (np.ndarray): Volumen recortado y normalizado.
+    """
     window_min = level - width / 2
     window_max = level + width / 2
-    
     volume = np.clip(volume, window_min, window_max)
     volume = (volume - window_min) / (window_max - window_min)
-    
     return volume
 
+
 def resample_volume(volume, original_spacing, target_spacing=1.0):
-    """Re-muestrea el volumen a un espaciado isotrópico"""
-    # Calcular factores de resample
-    resize_factor = [os * target_spacing for os in original_spacing]
+    """
+    Re-muestrea el volumen a un espaciado isotrópico (target_spacing).
     
-    # Calcular nueva forma del volumen
-    new_shape = (
-        int(volume.shape[0] * resize_factor[0]),
-        int(volume.shape[1] * resize_factor[1]),
-        int(volume.shape[2] * resize_factor[2])
+    Args:
+        volume (np.ndarray): Volumen original.
+        original_spacing (tuple): Espaciado original (X, Y, Z).
+        target_spacing (float): Nuevo espaciado isotrópico.
+    
+    Returns:
+        volume (np.ndarray): Volumen re-muestreado.
+    """
+    resize_factors = [os / target_spacing for os in original_spacing]
+
+    new_shape = tuple(
+        max(1, int(round(dim * factor)))
+        for dim, factor in zip(volume.shape, resize_factors)
     )
-    
-    # Redimensionar volumen
-    volume = resize(
+
+    volume_resampled = resize(
         volume,
-        new_shape,
+        output_shape=new_shape,
         mode='reflect',
         anti_aliasing=True
     )
-    
-    return volume
+    return volume_resampled

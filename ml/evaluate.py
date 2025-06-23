@@ -16,21 +16,21 @@ import os
 from tqdm import tqdm
 
 def load_test_dataset(test_dir):
-    """Carga el conjunto de prueba desde el directorio especificado"""
-    test_cases = []
-    test_labels = []
+    """Carga el conjunto de prueba desde el directorio especificado."""
+    test_cases, test_labels = [], []
     
-    # Cargar casos benignos
-    benign_dir = os.path.join(test_dir, 'benign')
-    for case in tqdm(os.listdir(benign_dir), desc='Loading benign cases'):
-        test_cases.append(os.path.join(benign_dir, case))
-        test_labels.append(0)
+    subdirs = [('benign_case', 0), ('malignant_case', 1)]
     
-    # Cargar casos malignos
-    malignant_dir = os.path.join(test_dir, 'malignant')
-    for case in tqdm(os.listdir(malignant_dir), desc='Loading malignant cases'):
-        test_cases.append(os.path.join(malignant_dir, case))
-        test_labels.append(1)
+    for subdir, label in subdirs:
+        class_dir = os.path.join(test_dir, subdir)
+        if not os.path.isdir(class_dir):
+            raise FileNotFoundError(f"Directorio no encontrado: {class_dir}")
+        
+        for case in tqdm(os.listdir(class_dir), desc=f'Cargando casos {subdir}'):
+            case_path = os.path.join(class_dir, case)
+            if os.path.isdir(case_path) or case.endswith(('.zip', '.dcm')):
+                test_cases.append(case_path)
+                test_labels.append(label)
     
     return test_cases, test_labels
 
