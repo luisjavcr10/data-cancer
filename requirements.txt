@@ -1,5 +1,8 @@
+
 streamlit==1.22.0
 tensorflow==2.10.0
+tensorflow-macos==2.10.0  # Para Apple Silicon
+tensorflow-metal==0.6.0   # Para aceleración en Apple Silicon
 keras==2.10.0
 opencv-python==4.6.0.66
 matplotlib==3.6.2
@@ -15,3 +18,4 @@ SimpleITK==2.2.1
 nibabel==4.0.2
 gdown==4.6.4
 ipywidgets==8.0.4
+tqdm==4.64.1

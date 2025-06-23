@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   app:
     build:
@@ -12,12 +13,20 @@ services:
       - ./data:/data
       - ./models:/models
     environment:
-      - NVIDIA_VISIBLE_DEVICES=all
+      # Variables optimizadas para CPU en Mac
       - PYTHONPATH=/app:/ml
+      - OMP_NUM_THREADS=4
+      - TF_CPP_MIN_LOG_LEVEL=2
+      - TENSORFLOW_INTER_OP_PARALLELISM_THREADS=4
+      - TENSORFLOW_INTRA_OP_PARALLELISM_THREADS=4
+    # Configuración de recursos para Mac
     deploy:
       resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
         reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+          cpus: '2.0'
+          memory: 4G
+    # Reiniciar automáticamente si falla
+    restart: unless-stopped

@@ -108,7 +108,7 @@ def train_model(model, train_generator, val_generator, epochs=100, model_name='l
 
 if __name__ == "__main__":
     # Configuración
-    data_dir = 'data/LIDC-IDRI'  # Directorio con dataset LIDC-IDRI
+    data_dir = 'data/examples'  # Directorio con dataset LIDC-IDRI
     os.makedirs('models', exist_ok=True)
     os.makedirs('logs', exist_ok=True)
     
@@ -116,8 +116,8 @@ if __name__ == "__main__":
     train_cases, val_cases, train_labels, val_labels = load_dataset(data_dir)
     
     # Crear generadores
-    train_gen = CTScanGenerator(train_cases, train_labels, batch_size=4)
-    val_gen = CTScanGenerator(val_cases, val_labels, batch_size=4)
+    train_gen = CTScanGenerator(train_cases, train_labels, batch_size=1)
+    val_gen = CTScanGenerator(val_cases, val_labels, batch_size=1)
     
     # Cargar y entrenar modelos
     models = load_models()

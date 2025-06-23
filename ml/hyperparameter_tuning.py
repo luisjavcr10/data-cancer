@@ -112,7 +112,7 @@ def tune_hyperparameters(data_dir, max_epochs=50, executions_per_trial=1):
     return best_hps, history
 
 if __name__ == "__main__":
-    data_dir = 'data/LIDC-IDRI'  # Directorio con datos de entrenamiento
+    data_dir = 'data/examples'  # Directorio con datos de entrenamiento
     os.makedirs('hyperparameter_tuning', exist_ok=True)
     
     print("Iniciando búsqueda de hiperparámetros...")

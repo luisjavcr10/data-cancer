@@ -138,7 +138,7 @@ def save_plots(model_name, cm, fpr, tpr, roc_auc, precision, recall, ap_score, o
     plt.close()
 
 if __name__ == "__main__":
-    test_dir = 'data/LIDC-IDRI-test'  # Directorio con datos de prueba
+    test_dir = 'data/examples'   # Directorio con datos de prueba
     output_dir = 'reports'
     
     # Evaluar modelos

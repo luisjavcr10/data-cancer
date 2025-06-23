@@ -1,4 +1,13 @@
+import os
+# Configuración para optimizar rendimiento en CPU
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['OMP_NUM_THREADS'] = '4'
+
 import tensorflow as tf
+# Configurar TensorFlow para CPU optimizado
+tf.config.threading.set_inter_op_parallelism_threads(4)
+tf.config.threading.set_intra_op_parallelism_threads(4)
+
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import (
     Input, Conv3D, MaxPooling3D, 
