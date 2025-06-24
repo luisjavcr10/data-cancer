@@ -11,17 +11,21 @@ import os
 
 st.write("Debug: Ruta actual:", os.path.dirname(os.path.abspath(__file__)))
 
+import traceback
+
 try:
     from models_utils import load_models, predict_volume
     st.success("¡models_utils cargado!")
 except Exception as e:
     st.error(f"Fallo en models_utils: {e}")
+    st.text(traceback.format_exc())
 
 try:
     from preprocessing import load_and_preprocess_ct_scan
     st.success("¡preprocessing cargado!")
 except Exception as e:
     st.error(f"Fallo en preprocessing: {e}")
+    st.text(traceback.format_exc())
 
 # Configuración de la página
 st.set_page_config(
@@ -30,11 +34,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("Sistema Inteligente de Diagnóstico de Cáncer de Pulmón")
-st.markdown("""
-Este sistema utiliza redes neuronales 3D para analizar tomografías computarizadas 
-y detectar nódulos pulmonares sospechosos.
-""")
+
 
 # Cargar modelos
 @st.cache_resource
