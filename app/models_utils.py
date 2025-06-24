@@ -1,6 +1,6 @@
 import os
 # Configuración para optimizar rendimiento en CPU
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' #antes 2
 os.environ['OMP_NUM_THREADS'] = '4'
 
 import tensorflow as tf

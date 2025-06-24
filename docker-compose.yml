@@ -1,20 +1,18 @@
-version: '3.8'
-
 services:
   app:
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "8501:8501"
     volumes:
-      - ./app:/app
-      - ./ml:/ml
-      - ./data:/data
-      - ./models:/models
+      - ./app:/app/app 
+      - ./ml:/app/ml
+      - ./data:/app/data
+      - ./models:/app/models
     environment:
-      # Variables optimizadas para CPU en Mac
-      - PYTHONPATH=/app:/ml
+      # Corregir PYTHONPATH para incluir la carpeta app
+      - PYTHONPATH=/app:/app/app:/app/ml
       - OMP_NUM_THREADS=4
       - TF_CPP_MIN_LOG_LEVEL=2
       - TENSORFLOW_INTER_OP_PARALLELISM_THREADS=4

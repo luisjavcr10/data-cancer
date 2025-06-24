@@ -1,8 +1,5 @@
-
 streamlit==1.22.0
 tensorflow==2.10.0
-tensorflow-macos==2.10.0  # Para Apple Silicon
-tensorflow-metal==0.6.0   # Para aceleración en Apple Silicon
 keras==2.10.0
 opencv-python==4.6.0.66
 matplotlib==3.6.2

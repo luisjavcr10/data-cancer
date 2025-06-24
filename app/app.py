@@ -6,9 +6,22 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 import streamlit as st
 import SimpleITK as sitk
+import sys
+import os
 
-from model_utils import load_models, predict_volume
-from preprocessing import load_and_preprocess_ct_scan
+st.write("Debug: Ruta actual:", os.path.dirname(os.path.abspath(__file__)))
+
+try:
+    from models_utils import load_models, predict_volume
+    st.success("¡models_utils cargado!")
+except Exception as e:
+    st.error(f"Fallo en models_utils: {e}")
+
+try:
+    from preprocessing import load_and_preprocess_ct_scan
+    st.success("¡preprocessing cargado!")
+except Exception as e:
+    st.error(f"Fallo en preprocessing: {e}")
 
 # Configuración de la página
 st.set_page_config(
